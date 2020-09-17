@@ -1,0 +1,40 @@
+<launch>
+  <arg name="map_file" default="$(find turtlebot3_navigation)/maps/map.yaml"/>
+
+
+  <param name="robot_description" command="$(find xacro)/xacro.py $(find turtlebot3_description)/urdf/turtlebot3_burger.urdf.xacro" />
+
+  <!--param name="cmd_vel_topic_name" value="/cmd_vel"/ -->
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_world.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <!-- Map server -->
+  <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
+
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot3_burger -x -2.0 -y -0.5 -z 0.0" />
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="50.0" />
+    <param name="tf_prefix" value=""/>
+  </node>
+
+  <!-- Gmapping -->
+  <node pkg="gmapping" type="slam_gmapping" name="robot_mapping" output="screen">
+    <rosparam command="load" file="$(find turtlebot3_slam)/config/gmapping_params.yaml" />
+  </node>
+
+  <!-- node name="turtlebot3_drive" pkg="teste_inicial" type="teste_inicial_turtlebot3_drive" required="true" output="screen"/ -->
+
+  <node pkg="rviz" type="rviz" name="rviz" required="true" args="-d $(find turtlebot3_slam)/rviz/turtlebot3_gmapping.rviz"/>
+
+  <!-- AMCL -->
+  <!--include file="$(find teste_inicial)/launch/amcl.launch"/ -->
+
+</launch>
