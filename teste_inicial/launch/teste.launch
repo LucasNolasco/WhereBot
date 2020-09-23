@@ -7,7 +7,8 @@
   <!--param name="cmd_vel_topic_name" value="/cmd_vel"/ -->
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_world.world"/>
+    <!-- arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/ -->
+    <arg name="world_name" value="$(find teste_inicial)/worlds/meia_casa.world"/>
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>
@@ -16,9 +17,9 @@
   </include>
 
   <!-- Map server -->
-  <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
+  <!-- node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/ -->
 
-  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot3_burger -x -2.0 -y -0.5 -z 0.0" />
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot3_burger -x -3.0 -y 1 -z 0.0" />
 
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
     <param name="publish_frequency" type="double" value="50.0" />
@@ -32,9 +33,13 @@
 
   <!-- node name="turtlebot3_drive" pkg="teste_inicial" type="teste_inicial_turtlebot3_drive" required="true" output="screen"/ -->
 
-  <node pkg="rviz" type="rviz" name="rviz" required="true" args="-d $(find turtlebot3_slam)/rviz/turtlebot3_gmapping.rviz"/>
+  <node pkg="rviz" type="rviz" name="rviz" required="true" args="-d $(find turtlebot3_slam)/rviz/turtlebot3_gmapping.rviz" />
 
   <!-- AMCL -->
-  <!--include file="$(find teste_inicial)/launch/amcl.launch"/ -->
+  <!-- AMCL (Adaptative Monte Carlo Localization) é um algoritmo de localização usando filtro de partículas que trabalha em cima de mapas conhecidos, então não faz sentido usar -->
+  <!-- include file="$(find teste_inicial)/launch/amcl.launch"/ -->
+
+  <include file="$(find teste_inicial)/launch/move_base.launch" />
+
 
 </launch>

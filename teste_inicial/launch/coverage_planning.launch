@@ -1,0 +1,3 @@
+<launch>
+  <node name="coverage_planning" pkg="teste_inicial" type="coverage_planning.py" output="screen" />
+</launch>
