@@ -7,7 +7,7 @@
   <!--param name="cmd_vel_topic_name" value="/cmd_vel"/ -->
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <!-- arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/ -->
+    <!-- arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world" / -->
     <arg name="world_name" value="$(find teste_inicial)/worlds/meia_casa.world"/>
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>

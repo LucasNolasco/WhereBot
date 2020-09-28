@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 import rospy
-from nav_msgs.msg import OccupancyGrid
+from nav_msgs.msg import OccupancyGrid, GridCells
 from map_msgs.msg import OccupancyGridUpdate
 from std_msgs.msg import Bool
 import geometry_msgs
-from geometry_msgs.msg import PointStamped
+from geometry_msgs.msg import PointStamped, Point
 import tf
 import numpy as np
 from math import sqrt
@@ -269,16 +269,16 @@ class CoveragePlanning:
                 area += 1
                 self.reachable_map[y][x] = 1
 
-                if checked[y][x - 1] == 0 and self.costmap[y][x - 1] >= 1 and self.costmap[y][x - 1] < 128:
+                if checked[y][x - 1] == 0 and self.costmap[y][x - 1] > 0 and self.costmap[y][x - 1] < 128:
                     stack.append((x - 1, y))
                     checked[y][x - 1] = 1
-                if checked[y][x + 1] == 0 and self.costmap[y][x + 1] >= 1 and self.costmap[y][x + 1] < 128:
+                if checked[y][x + 1] == 0 and self.costmap[y][x + 1] > 0 and self.costmap[y][x + 1] < 128:
                     stack.append((x + 1, y))
                     checked[y][x + 1] = 1
-                if checked[y - 1][x] == 0 and self.costmap[y - 1][x] >= 1 and self.costmap[y - 1][x] < 128:
+                if checked[y - 1][x] == 0 and self.costmap[y - 1][x] > 0 and self.costmap[y - 1][x] < 128:
                     stack.append((x, y - 1))
                     checked[y - 1][x] = 1
-                if checked[y + 1][x] == 0 and self.costmap[y + 1][x] >= 1 and self.costmap[y + 1][x] < 128:
+                if checked[y + 1][x] == 0 and self.costmap[y + 1][x] > 0 and self.costmap[y + 1][x] < 128:
                     stack.append((x, y + 1))
                     checked[y + 1][x] = 1
 
@@ -391,9 +391,11 @@ class CoveragePlanning:
 
                             rospy.loginfo("AREA: {0}".format(area))
 
+                            '''
                             if DEBUG_SHOW_IMAGES == True: # Exibe para debug a área que está sendo analisada
                                 cv2.imshow("AREA MAP", area_map)
                                 cv2.waitKey(1)
+                            '''
 
         return goal, total_area
 
@@ -421,6 +423,32 @@ class CoveragePlanning:
 
         return x, y
 
+    # ----------------------------------------------------------
+    #   publishCoveredArea
+    #       Publica os dados de pontos explorados pelo robô no
+    #       tópico covered_space para a visualização no RViZ
+    #
+    # ----------------------------------------------------------
+
+    def publishCoveredArea(self):
+        covered_msg = GridCells()
+                
+        covered_msg.header.frame_id = "map"
+
+        covered_msg.cell_width = self.scale
+        covered_msg.cell_height = self.scale
+
+        for i in range(self.costmap.shape[0]):
+            for j in range(self.costmap.shape[1]):
+                if self.visited_points[i][j] == 1:
+                    point = Point()
+                    point.x = (j + 0.5) * self.scale + self.origin_x
+                    point.y = (i + 0.5) * self.scale + self.origin_y
+                    point.z = 0
+                    covered_msg.cells.append(point)
+
+        self.covered_space.publish(covered_msg)
+
     def __init__(self):
         self.costmap = None # Mapa inflado para evitar que o robô se aproxime de pontos que não é capaz de alcançar
         self.cost_translation_table = None # Vetor com a transformação dos valores recebidos pelo tópico do costmap
@@ -438,6 +466,8 @@ class CoveragePlanning:
         rospy.Subscriber('move_base/global_costmap/costmap_updates', OccupancyGridUpdate, self.costmap_update_callback) # Se inscreve no tópico para os updates do costmap
         rospy.Subscriber('/explore/explorer_reached_goal', Bool, self.explore_notification_callback) # Se inscreve para o tópico que envia as notificações de fim de exploração
 
+        self.covered_space = rospy.Publisher("/covered_space", GridCells, queue_size=10) # Tópico responsável por publicar a área coberta pela movimentação do robô
+
         client = actionlib.SimpleActionClient('move_base',MoveBaseAction) # Cria o cliente do move_base para enviar os objetivos para onde o robô deve ir
         rospy.loginfo("Waiting for move_base server")
         client.wait_for_server() # Espera a move_base estar configurada
@@ -446,21 +476,13 @@ class CoveragePlanning:
         self.tf_listener = tf.TransformListener() # Instancia o objeto para lidar com as transformações de posição no mapa
 
         no_goal = 0
-
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
             try:
                 x, y = self.getPos() # Obtém a posição do robô no mapa
 
                 if self.visited_points is not None:
-                    #robot_dims = int((ROBOT_PADDING / self.scale) / 2)
-                    #robot_dims += (robot_dims) % 2
-
-                    robot_dims = 5
-                    for i in range(y - robot_dims, y + robot_dims + 1): # Marca uma área coberta pela movimentação do robô
-                        for j in range(x - robot_dims, x + robot_dims + 1):
-                            if i < self.visited_points.shape[0] and j < self.visited_points.shape[1]:
-                                self.visited_points[i][j] = 1
+                    self.publishCoveredArea()
 
                     rospy.loginfo("Visited: ({0}, {1})".format(x, y))
 
@@ -471,14 +493,23 @@ class CoveragePlanning:
                         my_costmap = np.zeros(self.costmap.shape) # Cria um costmap binarizado
                         for a in range(my_costmap.shape[0]):
                             for b in range(my_costmap.shape[1]):
-                                if self.costmap[a][b] >= 1 and self.costmap[a][b] < 128:
+                                if self.costmap[a][b] >= 0 and self.costmap[a][b] < 128:
                                     my_costmap[a][b] = 1
 
                         cv2.imshow("Teste", my_costmap)
                         cv2.waitKey(1)
 
-                        cv2.imshow("Path", self.visited_points)
-                        cv2.waitKey(1)
+                        #cv2.imshow("Path", self.visited_points)
+                        #cv2.waitKey(1)
+                    
+                    if self.map_finished:
+                        #----------------------------------
+                        robot_dims = 5
+                        for i in range(y - robot_dims, y + robot_dims + 1): # Marca uma área coberta pela movimentação do robô
+                            for j in range(x - robot_dims, x + robot_dims + 1):
+                                if i < self.visited_points.shape[0] and j < self.visited_points.shape[1]:
+                                    self.visited_points[i][j] = 1
+                        #----------------------------------
 
                     if self.map_finished and client.simple_state == SimpleGoalState.DONE:
                         new_goal, area = self.findNextGoal(x, y) # Calcula o próximo objetivo do robô

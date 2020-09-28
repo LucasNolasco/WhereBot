@@ -1,10 +1,6 @@
 <launch>
   <arg name="spacing" default="0.4" />
-  <!-- node name="heatmap_client" pkg="heatmap" type="heatmap_client" respawn="false" / -->
   <node name="path_planner" pkg="heatmap" type="path_planner.py" respawn="false" output="screen">
     <param name="coverage_spacing" value="$(arg spacing)" />
   </node>
-  <!-- node name="signal_sim" pkg="heatmap" type="signal_sim" / -->
-  <!-- node name="distance_measure" pkg="heatmap" type="distance_measure"/ -->
-  <!-- node name="goal_measure" pkg="heatmap" type="goal_measure" output="screen"/ -->
 </launch>
