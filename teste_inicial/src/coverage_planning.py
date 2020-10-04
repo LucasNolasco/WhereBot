@@ -17,13 +17,14 @@ import cv2
 from random import randrange
 
 # Dimensão do robô: 13,8 cm x 17,8 cm
-
 AREA_THRESHOLD = 1500 # Área mínima para que o robô visite
 
 GRIDS_DISTANCE_PATH_BUILDING = 12 # Em pixels (TODO: Verificar se não é melhor usar em metros)
 ROBOT_INFLUENCE = 5 # Região ao redor do robô para ser considerada como visitada (Área total da região visitada: (2 * ROBOT_INFLUENCE + 1) x (2 * ROBOT_INFLUENCE + 1))
 
 DEBUG_SHOW_IMAGES = False # Flag para indicar se as imagens de debug devem ser exibidas
+
+DEBUG_COVERAGE_PATH = False # Flag para indicar se as imagens para debug do cálculo de caminho devem ser mostradas
 
 class CoveragePlanning:
     # ----------------------------------------------------------
@@ -223,6 +224,9 @@ class CoveragePlanning:
         current_cost = None
         field = []
 
+        if DEBUG_COVERAGE_PATH:
+            final_map = np.zeros(self.reachable_map.shape) 
+
         # Percorre toda a matriz procurando os pontos marcados como alcançáveis 
         for ry in range(self.reachable_map.shape[0]):
             for rx in range(self.reachable_map.shape[1]):
@@ -280,7 +284,10 @@ class CoveragePlanning:
 
                         if current_cost is None or cost > current_cost:
                             field = np.copy(field_points) # Polígono com a área ainda inexplorada
-                            
+                
+                            if DEBUG_COVERAGE_PATH:
+                                final_map = np.copy(area_map)
+
                             current_goal_cost = cost 
                             rospy.loginfo("Region of Interest Area: {0}".format(area))
 
@@ -302,13 +309,51 @@ class CoveragePlanning:
 
         rospy.loginfo("Environment limits: ({0}, {1}), ({2}, {3})".format(region_x0, region_y0, region_xn, region_yn))
 
-        y_axis = np.arange(region_y0, region_yn, GRIDS_DISTANCE_PATH_BUILDING) # Gera um eixo com os pontos de interesse dentro da região a ser explorada
-        x_axis = np.arange(region_x0, region_xn, GRIDS_DISTANCE_PATH_BUILDING) 
+        y_axis = np.arange(region_y0 + 5, region_yn, GRIDS_DISTANCE_PATH_BUILDING) # Gera um eixo com os pontos de interesse dentro da região a ser explorada
+        x_axis = np.arange(region_x0 + 5, region_xn, GRIDS_DISTANCE_PATH_BUILDING) 
+
+
+        if DEBUG_COVERAGE_PATH:
+            bin_costmap = np.zeros(self.costmap.shape)
+            for yi in range(self.costmap.shape[0]):
+                for xi in range(self.costmap.shape[1]):
+                    if self.isFree(xi, yi):
+                        bin_costmap[yi][xi] = 1
+
+            cv2.imshow("Bin Costmap", bin_costmap)
+            cv2.waitKey(0)
+
+            cv2.imshow("Reachable Map", self.reachable_map)
+            cv2.waitKey(0)
+
+            cv2.imshow("ROI", final_map)
+            cv2.waitKey(0)
+
+            final_map = cv2.cvtColor(np.uint8(final_map * 255), cv2.COLOR_GRAY2RGB)
+
+            for yi in y_axis:
+                cv2.line(final_map, (0, yi), (self.reachable_map.shape[0], yi), (255,0,0))
+
+            for xi in x_axis:
+                cv2.line(final_map, (xi, 0), (xi, self.reachable_map.shape[1]), (255,0,0))
+
+            cv2.imshow("Grids", final_map)
+            cv2.waitKey(0)
+
+            for yi in y_axis:
+                for xi in x_axis:
+                    if np.average(np.average(self.reachable_map[yi - 2: yi + 3], axis=0)[xi - 2: xi + 3], axis=0) >= 0.9 and np.average(np.average(self.visited_points[yi - 2: yi + 3], axis = 0)[xi - 2: xi + 3], axis=0) < 0.2:
+                        final_map = cv2.circle(final_map, (xi,yi), radius=2, color=(0,0,255), thickness=-1)
+
+            cv2.imshow("Interest Points", final_map)
+            cv2.waitKey(0)
+
 
         path = [] # Adiciona todos do pontos alcançáveis do grid como objetivos
         for yi in y_axis:
             for xi in x_axis:
-                if self.reachable_map[yi][xi] == 1:
+                #if self.reachable_map[yi][xi] == 1:
+                if np.average(np.average(self.reachable_map[yi - 2: yi + 3], axis=0)[xi - 2: xi + 3], axis=0) >= 0.9 and np.average(np.average(self.visited_points[yi - 2: yi + 3], axis = 0)[xi - 2: xi + 3], axis=0) < 0.2:
                     path.append((xi, yi))
 
         final_path = [] # Caminho final reordenado
