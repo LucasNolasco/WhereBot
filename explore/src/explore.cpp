@@ -39,6 +39,8 @@
 
 #include <thread>
 
+ros::Publisher state_publisher;
+
 inline static bool operator==(const geometry_msgs::Point& one,
                               const geometry_msgs::Point& two)
 {
@@ -46,6 +48,18 @@ inline static bool operator==(const geometry_msgs::Point& one,
   double dy = one.y - two.y;
   double dist = sqrt(dx * dx + dy * dy);
   return dist < 0.01;
+}
+
+void serverCallback(const std_msgs::String::ConstPtr& msg) {
+ ROS_DEBUG("Message received: %s\n", msg->data.c_str());
+ if(strcmp(msg->data.c_str(), "Start") == 0) {
+    std_msgs::String msg;
+
+    msg.data = "Doing";
+    state_publisher.publish(msg);
+
+    begin = true;
+ }
 }
 
 namespace explore
@@ -83,6 +97,7 @@ Explore::Explore()
   ROS_INFO("Waiting to connect to move_base server");
   move_base_client_.waitForServer();
   ROS_INFO("Connected to move_base server");
+
 
   exploring_timer_ =
       relative_nh_.createTimer(ros::Duration(1. / planner_frequency_),
@@ -180,6 +195,10 @@ void Explore::visualizeFrontiers(
 
 void Explore::makePlan()
 {
+  if(!begin)
+    return; /* Espera pelo servidor */
+
+
   // find frontiers
   auto pose = costmap_client_.getRobotPose();
   // get frontiers sorted according to cost
@@ -303,10 +322,18 @@ void Explore::stop()
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "explore");
+  
   if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,
                                      ros::console::levels::Debug)) {
     ros::console::notifyLoggerLevelsChanged();
   }
+
+  ros::NodeHandle n;
+
+  begin = false;
+  state_publisher = n.advertise<std_msgs::String>("/survey/state", 10);
+  ros::Subscriber state_subscriber = n.subscribe("/survey/state", 10, serverCallback);
+
   explore::Explore explore;
   ros::spin();
 

@@ -52,6 +52,11 @@
 #include <explore/frontier_search.h>
 
 #include <std_msgs/Bool.h>
+#include <std_msgs/String.h>
+
+
+bool begin;
+
 
 namespace explore
 {
@@ -86,6 +91,7 @@ private:
                    const geometry_msgs::Point& frontier_goal);
 
   bool goalOnBlacklist(const geometry_msgs::Point& goal);
+
 
   ros::NodeHandle private_nh_;
   ros::NodeHandle relative_nh_;

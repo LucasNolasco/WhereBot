@@ -166,6 +166,8 @@ include_directories(
 catkin_install_python(PROGRAMS
 #   scripts/my_python_script
    src/coverage_planning.py src/coverage_planning.py
+   #src/control.py src/control.py
+   src/teste_control.py src/teste_control.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
