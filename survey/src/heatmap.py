@@ -12,6 +12,7 @@ from scipy.interpolate import Rbf
 from pylab import imread, imshow
 
 # PIL pode substituir parcialmente o pylab imread (depois verificar se pode completamente)
+import PIL
 from PIL import Image
 
 import rospy
@@ -25,7 +26,7 @@ def surveyCallback(data):
 
 def img_correction(input):
     input = input.split(':')
-    img = Image.open(input[0]).rotate(90)
+    img = Image.open(input[0]).transpose(PIL.Image.FLIP_TOP_BOTTOM)
     img = img.convert("RGBA")
     datas = img.getdata()
     newData = []
@@ -190,7 +191,7 @@ def grid_plots():
         t.patch.set_alpha(0.5)
 
     # pp.show()
-    pp.savefig('/home/wagner/catkin_ws/src/wherebot-survey-node/simulation_files/fig-beacons.png', pad_inches=0.1, bbox_inches='tight')
+    pp.savefig('/home/wagner/catkin_ws/src/survey/simulation_files/fig-beacons.png', pad_inches=0.1, bbox_inches='tight')
     pp.clf()
 
 def max_plot():
@@ -224,9 +225,9 @@ def max_plot():
 
     pp.imshow(layout, interpolation='bicubic', zorder=100)
     # pp.show()
-    pp.savefig('/home/wagner/catkin_ws/src/wherebot-survey-node/simulation_files/fig-final.png',pad_inches=0.1, bbox_inches='tight')
+    pp.savefig('/home/wagner/catkin_ws/src/survey/simulation_files/fig-final.png',pad_inches=0.1, bbox_inches='tight')
     pp.clf()
-    state.data= "/home/wagner/catkin_ws/src/wherebot-survey-node/simulation_files/fig-beacons.png:/home/wagner/catkin_ws/src/wherebot-survey-node/simulation_files/fig-final.png"
+    state.data= "/home/wagner/catkin_ws/src/survey/simulation_files/fig-beacons.png:/home/wagner/catkin_ws/src/survey/simulation_files/fig-final.png"
     pub.publish(state)
 
 rospy.init_node("heatmap")

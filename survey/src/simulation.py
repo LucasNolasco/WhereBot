@@ -11,7 +11,7 @@ from threading import Lock
 import random
 
 
-APS_CORDINATES = [(133,236), (230,310)]
+APS_CORDINATES = [(140,240), (75,144)]
 
 CSV_HEADER = ["Grid Point","Drawing X","Drawing Y","2e:20","14:a1"]
 
@@ -132,8 +132,8 @@ class WirelessSimulation:
         string = String()
         self.explore_finished = False
         self.dbm_csv.close()
-        os.system('rosrun map_server map_saver -f /home/wagner/catkin_ws/src/wherebot-survey-node/simulation_files/my_map')
-        string.data = '/home/wagner/catkin_ws/src/wherebot-survey-node/simulation_files/my_map.pgm' + ':' +  self.dbm_csv_path
+        os.system('rosrun map_server map_saver -f /home/wagner/catkin_ws/src/survey/simulation_files/my_map')
+        string.data = '/home/wagner/catkin_ws/src/survey/simulation_files/my_map.pgm' + ':' +  self.dbm_csv_path
         self.pub_output.publish(string)
         rospy.loginfo("Movimentação finalizada. Salvando mapa e CSV.")
 
@@ -182,12 +182,11 @@ class WirelessSimulation:
                  ((positionTuple[1] + 0.5 )*self.scale + self.origin_y))
 
     def dbmCalculator(self, robotPosition, apPosition):
-        print(f"DBM CALCULATOR: {robotPosition}/{self.pixelToMeters(robotPosition)} - {apPosition}/{self.pixelToMeters(apPosition)}")
         distance = self.distance(self.pixelToMeters(robotPosition), self.pixelToMeters(apPosition))
         return (-int(20*log10(distance) - FSPL + 20*log10(MHz)))
 
     def setVariablesCSV(self):
-        self.dbm_csv_path = '/home/wagner/catkin_ws/src/wherebot-survey-node/simulation_files/' + str(random.randint(1,100000)) + '.csv'
+        self.dbm_csv_path = '/home/wagner/catkin_ws/src/survey/simulation_files/' + str(random.randint(1,100000)) + '.csv'
         self.dbm_csv = open(self.dbm_csv_path, mode='w') # Cria e abre o arquivo onde ficarao salvos os valores de dbm
         self.dbm_writer = csv.writer(self.dbm_csv, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL) # Configura o formato do csv
         self.dbm_writer.writerow(CSV_HEADER) # Adiciona no csv o nosso HEADER pre definido

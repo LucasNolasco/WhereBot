@@ -1,4 +1,4 @@
-image: /home/wagner/catkin_ws/src/wherebot-survey-node/simulation_files/my_map.pgm
+image: /home/wagner/catkin_ws/src/survey/simulation_files/my_map.pgm
 resolution: 0.050000
 origin: [-10.000000, -10.000000, 0.000000]
 negate: 0
