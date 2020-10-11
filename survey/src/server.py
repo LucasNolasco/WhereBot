@@ -6,10 +6,10 @@ from std_msgs.msg import String
 import os
 
 base_url = "https://wherebot-backend.herokuapp.com"
-robotID = "5f7a3474590c2d0021953866"
+robotID = "5f81dbc016aaa60021a0a48a"
 
 def surveyCallback(data):
-	image_paths = data.data.split('-')
+	image_paths = data.data.split(':')
 	files = []
 	
 	for path in image_paths:
@@ -17,13 +17,20 @@ def surveyCallback(data):
 		imageType = path.split('.')[-1]
 		files.append( ('files', (imageName, open(path, 'rb'), f'image/{imageType}' )) )
 
-	reqBody = {
+	reqBody1 = {
 		"info": "Info",
 		"robotID": robotID,
 	}
 
+	reqBody2 = {
+		"state": "Stopped",
+		"robotID": robotID
+	}
+
+
 	try:
-		response = requests.post(base_url + "/survey/new", files=files, data=reqBody)
+		response = requests.post(base_url + "/survey/new", files=files, data=reqBody1)
+		requests.post(base_url + "/robot/setstate", data=reqBody2)
 		print("POST Request to create new survey done: ", response.json())
 	except ValueError:
 		print("POST Request to create new survey error: ", ValueError)
@@ -65,9 +72,10 @@ while not rospy.is_shutdown():
 		if dados["state"] == "Start":
 			state.data = "Start"
 			pub.publish(state)
+		pass
 
-	except ValueError:
-		print("GET Request state error: ", ValueError)
+	except Exception as e:
+		print("GET Request state error: ", e)
 	
 	rate.sleep()
 

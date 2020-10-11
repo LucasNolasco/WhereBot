@@ -7,3 +7,5 @@ COMO RODAR:
 2 - roslaunch teste_inicial coverage_planning.launch
 
 3 - roslaunch teste_inicial explore.launch
+
+4 - roslaunch survey survey_launch.launch

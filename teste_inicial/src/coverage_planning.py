@@ -3,7 +3,7 @@
 import rospy
 from nav_msgs.msg import OccupancyGrid, GridCells
 from map_msgs.msg import OccupancyGridUpdate
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 import geometry_msgs
 from geometry_msgs.msg import PointStamped, Point, Polygon
 import tf
@@ -500,6 +500,7 @@ class CoveragePlanning:
         rospy.Subscriber('move_base/global_costmap/costmap_updates', OccupancyGridUpdate, self.costmap_update_callback) # Se inscreve no tópico para os updates do costmap
         rospy.Subscriber('/explore/explorer_reached_goal', Bool, self.explore_notification_callback) # Se inscreve para o tópico que envia as notificações de fim de exploração
 
+        self.movement_finished = rospy.Publisher("/movement/finished", String, queue_size=10) # Topico responsavel por avisar que a movimentacao terminou
         self.covered_space = rospy.Publisher("/covered_space", GridCells, queue_size=10) # Tópico responsável por publicar a área coberta pela movimentação do robô
 
         client = actionlib.SimpleActionClient('move_base',MoveBaseAction) # Cria o cliente do move_base para enviar os objetivos para onde o robô deve ir
@@ -589,6 +590,9 @@ class CoveragePlanning:
 
                         if no_goal >= 10: # Se a tentativa de encontrar um novo objetivo falhou por 10 vezes seguidas
                             rospy.loginfo("Movimentação finalizada")
+                            msg = String()
+                            msg.data = "Finished"
+                            self.movement_finished.publish(msg)
                             break
 
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):

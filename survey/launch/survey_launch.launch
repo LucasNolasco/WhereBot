@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="survey" type="server.py" name="server" output="screen"></node>
+    <node pkg="survey" type="heatmap.py" name="heatmap" output="screen"></node>
+    <node pkg="survey" type="simulation.py" name="wireless_simulation" output="screen"></node>
+</launch>

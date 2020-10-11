@@ -1,3 +1,0 @@
-<launch>
-    <node pkg="survey" type="server.py" name="server" output="screen"></node>
-</launch>
