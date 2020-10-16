@@ -1,5 +1,9 @@
 # WhereBot
 
+Necessario instalar pacote python:
+
+pip3 install "python-socketio[client]"
+
 COMO RODAR:
 
 1 - roslaunch teste_inicial teste.launch
