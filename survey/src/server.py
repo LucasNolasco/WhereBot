@@ -3,9 +3,10 @@
 import rospy
 import requests
 from std_msgs.msg import String
-import os
+import os, socketio
 
 base_url = "https://wherebot-backend.herokuapp.com"
+#base_url = "http://localhost:8080"
 robotID = "5f81dbc016aaa60021a0a48a"
 
 def surveyCallback(data):
@@ -52,7 +53,6 @@ def stateCallback(data):
 		print("POST Request to change state error: ", ValueError)
 	
 
-
 rospy.init_node("server")
 rate = rospy.Rate(0.2)
 state = String()
@@ -62,22 +62,15 @@ pub = rospy.Publisher('/survey/state', String, queue_size=10)
 rospy.Subscriber("/survey/finish/data", String, surveyCallback)
 rospy.Subscriber("/survey/state", String, stateCallback)
 
+# Socket connection
+sio = socketio.Client()
+sio.connect(base_url)
 
-while not rospy.is_shutdown():
-	try:
-		r = requests.get(url = base_url+"/robot/getstate", json={ "robotID": robotID }) 
-		dados = r.json()
-		print("GET Request state done: ", dados)
-		
-		if dados["state"] == "Start":
-			state.data = "Start"
-			pub.publish(state)
-		pass
+@sio.on(robotID)
+def on_message(data):
+	print("SOCKET data received: ", data)
+	if data["state"] == "Start":
+		state.data = "Start"
+		pub.publish(state)
 
-	except Exception as e:
-		print("GET Request state error: ", e)
-	
-	rate.sleep()
-
-
-#/home/wagner/Pictures/heatmap1.jpeg-/home/wagner/Pictures/heatmap2.jpeg-/home/wagner/Pictures/heatmap3.jpeg
+rospy.spin()
