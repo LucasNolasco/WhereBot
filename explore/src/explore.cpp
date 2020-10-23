@@ -41,13 +41,24 @@
 
 ros::Publisher state_publisher;
 
+bool twoPointsDistance(const geometry_msgs::Point& one,
+                       const geometry_msgs::Point& two,
+                       const float epsilon)
+{
+  double dx = one.x - two.x;
+  double dy = one.y - two.y;
+  double dist = sqrt(dx * dx + dy * dy);
+  ROS_DEBUG("Distance: %lf\n", dist);
+  return dist < epsilon;
+}
+
 inline static bool operator==(const geometry_msgs::Point& one,
                               const geometry_msgs::Point& two)
 {
   double dx = one.x - two.x;
   double dy = one.y - two.y;
   double dist = sqrt(dx * dx + dy * dy);
-  return dist < 0.01;
+  return dist < 0.02;
 }
 
 void serverCallback(const std_msgs::String::ConstPtr& msg) {
@@ -74,6 +85,7 @@ Explore::Explore()
 {
   double timeout;
   double min_frontier_size;
+  last_position.x = -99;
   private_nh_.param("planner_frequency", planner_frequency_, 1.0);
   private_nh_.param("progress_timeout", timeout, 30.0);
   progress_timeout_ = ros::Duration(timeout);
@@ -201,6 +213,14 @@ void Explore::makePlan()
 
   // find frontiers
   auto pose = costmap_client_.getRobotPose();
+
+  if(last_position.x != -99 && !twoPointsDistance(pose.position, last_position, 0.5)){
+    ROS_DEBUG("Going to last postition.");
+    return;
+  }
+  else
+    last_position.x = -99;
+
   // get frontiers sorted according to cost
   auto frontiers = search_.searchFrom(pose.position);
   ROS_DEBUG("found %lu frontiers", frontiers.size());
@@ -228,7 +248,15 @@ void Explore::makePlan()
     stop();
     return;
   }
+
   geometry_msgs::Point target_position = frontier->centroid;
+  
+  
+  if( twoPointsDistance(target_position, pose.position, 0.1) ){
+    target_position = frontier->middle;
+    last_position = frontier->middle;
+    ROS_DEBUG("Chaging target position.");
+  }
 
   // time out if we are not making any progress
   bool same_goal = prev_goal_ == target_position;
@@ -238,6 +266,8 @@ void Explore::makePlan()
     last_progress_ = ros::Time::now();
     prev_distance_ = frontier->min_distance;
   }
+
+  
   // black list if we've made no progress for a long time
   if (ros::Time::now() - last_progress_ > progress_timeout_) {
     frontier_blacklist_.push_back(target_position);

@@ -107,6 +107,7 @@ private:
 
   std::vector<geometry_msgs::Point> frontier_blacklist_;
   geometry_msgs::Point prev_goal_;
+  geometry_msgs::Point last_position;
   double prev_distance_;
   ros::Time last_progress_;
   size_t last_markers_count_;
